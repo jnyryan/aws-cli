@@ -5,7 +5,9 @@ command line interface for AWS
 
 
 ###Set Up
+```
 npm install
+```
 
 ###Usage
 
