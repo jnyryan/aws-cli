@@ -6,7 +6,7 @@ command line interface for AWS
 
 ###Set Up
 ```
-npm install
+npm install . -g
 ```
 
 ###Usage
