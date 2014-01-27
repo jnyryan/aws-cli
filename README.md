@@ -16,7 +16,7 @@ Usage manual
 aws -h
 ```
 
-Set up security credentials
+Set up security credentials.  You only have to do this one time.
 ```
 aws security-credentials --access-key-id=XXXXXXXX --secret-access-key=XXXXXXXXXXXX
 ```
