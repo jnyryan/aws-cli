@@ -1,0 +1,31 @@
+{
+  "name": "aws-cli",
+  "description": "The AWS command line interface.",
+  "version": "0.0.1",
+  "author": "GLG",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/glg/aws-cli.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/glg/aws-cli/blob/master/LICENSE"
+    }
+  ],
+  "bin": {
+    "aws": "bin/aws"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "preferGlobal": true,
+  "dependencies": {
+    "docopt": "0.4.0",
+    "cli-table": "0.2.0",
+    "color": "0.5.0",
+    "grunt-contrib-coffee":"0.8.2",
+    "grunt-contrib-copy":"0.5.0",
+    "grunt-contrib-watch":"0.5.3"
+  }
+}
