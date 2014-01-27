@@ -121,7 +121,7 @@ get instances
                   InstanceId:r.InstanceId
                   InstanceType:r.InstanceType
                   KeyName:r.KeyName
-                  LaunchTime:moment(r.LaunchTime).utc().valueOf()
+                  LaunchTime:moment(r.LaunchTime).fromNow()
                   Placement:r.Placement
                   Name:instanceName
                   Tags:r.Tags
