@@ -14,18 +14,21 @@
     }
   ],
   "bin": {
-    "aws": "bin/aws"
+    "aws": "bin/aws.js"
   },
   "engines": {
     "node": ">= 0.8.0"
   },
   "preferGlobal": true,
   "dependencies": {
+    "coffee-script":"1.6.3",
     "docopt": "0.4.0",
     "cli-table": "0.2.0",
-    "color": "0.5.0",
-    "grunt-contrib-coffee":"0.8.2",
-    "grunt-contrib-copy":"0.5.0",
-    "grunt-contrib-watch":"0.5.3"
+    "colors": "*",
+    "lodash": "*",
+    "moment": "2.3.1",
+    "request": "*",
+    "async":"*",
+    "aws-sdk":"*"
   }
 }
