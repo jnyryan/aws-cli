@@ -49,7 +49,8 @@ region info from [http://docs.aws.amazon.com/general/latest/gr/rande.html](http:
     getAWSConfig = (callback) ->
       fs.readFile "#{process.cwd()}/.aws-cli", "utf8",(err, data) ->
           if err
-            console.log 'getAWSConfig error: #{err}'.red
+            console.log 'Set your access-key-id and secret-access-key.'.red
+            console.log 'aws security-credentials --access-key-id=<accessKeyId> --secret-access-key=<secretAccessKey>'.yellow
           else
             sc = data.split(' ')
             callback {'AWS_ACCESS_KEY_ID':sc[0], "AWS_SECRET_KEY":sc[1]}
@@ -93,8 +94,6 @@ get instances
         regions = opts['<region>']
 
       getAWSConfig (credentials) ->
-        instances = [];
-
         AWS.config.update
           accessKeyId: credentials.AWS_ACCESS_KEY_ID
           secretAccessKey: credentials.AWS_SECRET_KEY
@@ -131,22 +130,15 @@ get instances
                 }
                 regionInstances.push(instance)
 
-              instances.push({region:region, instances:regionInstances})
-              if instances.length is regions.length
-                _.each instances, (ri) ->
-                  console.log '\n\n===================================================='.blue
-                  console.log ri.region.blue
-                  
-                  table = new Table
-                    head: ['Name','Instance Id','Instance Type','Status','Launched','Public DNS Name','Public IP Address']
-                  _.each ri.instances, (i) ->
-                    table.push [i.Name || '', i.InstanceId || '', i.InstanceType || '', i.State || '', i.LaunchTime || '', i.PublicDnsName || '', i.PublicIpAddress || '']
+              console.log '\n\n===================================================='.blue
+              console.log region.blue
+              
+              table = new Table
+                head: ['Name','Instance Id','Instance Type','Status','Launched','Public DNS Name','Public IP Address']
+              _.each regionInstances, (i) ->
+                table.push [i.Name || '', i.InstanceId || '', i.InstanceType || '', i.State || '', i.LaunchTime || '', i.PublicDnsName || '', i.PublicIpAddress || '']
 
-                  console.log table.toString()
-
-
-
-
+              console.log table.toString()
 
 
     # #!/usr/bin/env node
