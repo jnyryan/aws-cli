@@ -11,7 +11,7 @@
     Usage:
       aws regions
       aws security-credentials --access-key-id=<accessKeyId> --secret-access-key=<secretAccessKey>
-      aws instances [<region>...]
+      aws ls [<region>...]
       aws -h | --help | --version
 
     """
@@ -85,9 +85,9 @@ regions
       console.log table.toString()
 
 get instances
-
-    else if opts['instances']
-      if opts['<region>'].length is 0
+  
+    else if opts['ls']
+      if !opts['<region>'] or opts['<region>'].length is 0
         regions = _.pluck EC2_regions, 'region'
       else 
         regions = opts['<region>']
@@ -133,10 +133,7 @@ get instances
 
               instances.push({region:region, instances:regionInstances})
               if instances.length is regions.length
-                instances  = _.sortBy instances, (i) ->
-                  i.instances.length
-
-                _.each instances.reverse(), (ri) ->
+                _.each instances, (ri) ->
                   console.log '\n\n===================================================='.blue
                   console.log ri.region.blue
                   

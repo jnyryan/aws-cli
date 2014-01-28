@@ -29,11 +29,11 @@ aws regions
 
 Get all instances
 ```
-aws instances
+aws ls
 ```
 
 
 Get instances for specific regions
 ```
-aws instances us-east-1 us-west-2
+aws ls us-east-1 us-west-2
 ```
