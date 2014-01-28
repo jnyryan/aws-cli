@@ -13,7 +13,7 @@
       aws security-credentials --access-key-id=<accessKeyId> --secret-access-key=<secretAccessKey>
       aws instances [<region>...] [--id-only]  
       aws metrics
-      aws get-metrics <id>...
+      aws get-metrics [--metrics=<metrics>] [--instances=<ids|region>]
       aws -h | --help | --version
 
     Options:
@@ -23,7 +23,8 @@
       --secret-access-key   Amazon secret access key.
       --id-only             Show only the EC2 instance id. Not tabular.
       <region>              Region ie. us-east-1
-      <id>                  EC2 instance id.
+      <metrics>             Comma separated metrics
+      <ids>                 Comma separated EC2 instance ids.
     """
 
     {docopt} = require 'docopt'
@@ -93,6 +94,7 @@
       console.log "\n\n#{region} - #{regionName.name}".blue
       console.log "#{underdash}".blue
 
+
     getRegions = (opts) ->
       if !opts['<region>'] or opts['<region>'].length is 0
         regions = _.pluck EC2_regions, 'region'
@@ -103,6 +105,33 @@
           return false
 
       regions
+
+
+    getAllInstances = (callback) ->
+      done = 0
+      allInstances = []
+      getAWSConfig (credentials) ->
+        AWS.config.update
+          accessKeyId: credentials.AWS_ACCESS_KEY_ID
+          secretAccessKey: credentials.AWS_SECRET_KEY
+
+        _.each EC2_regions, (rObj) ->
+          AWS.config.update {region: rObj.region}
+
+          new AWS.EC2().describeInstances (error, data) ->
+            console.log "get instances ERROR:#{error}".red if error
+            _.each data.Reservations, (r) ->
+              r = r.Instances[0]
+              allInstances.push
+                region:rObj.region
+                instanceId:r.InstanceId
+
+            if ++done is EC2_regions.length
+              instancesStr = JSON.stringify(allInstances)
+              fs.writeFile "#{process.cwd()}/.aws-cli-all-instances", instancesStr
+              callback instancesStr
+
+
 
 
 ###Executing the CLI options
@@ -190,8 +219,11 @@ or print all instance details
                 regionInstances.push(instance)
 
             if opts['--id-only']
-              instanceIdsStr += instanceIds.join(' ')
+              if instanceIds.length > 0
+                instanceIdsStr += instanceIds.join(',') + ','
+
               if ++done is regions.length
+                instanceIdsStr = instanceIdsStr.substr 0,instanceIdsStr.length-1
                 console.log instanceIdsStr
 
             else
@@ -203,18 +235,94 @@ or print all instance details
 
               console.log table.toString()
 
-####list metrics 
+####list available EC2 metrics 
 
-    if opts['metrics']
+    else if opts['metrics']
       table = new Table
-        head: ['Metrics name'],
+        head: ['EC2 Metrics'],
 
       _.each EC2_metrics, (r) ->
         table.push [r]
 
       console.log table.toString()
 
+####get speicified metrics for specified instances
+    
+    else if opts['get-metrics']
 
+in order to get metrics you need region of instance
+      regions = _.pluck EC2_regions, 'region'
+
+      async.waterfall([
+        (callback) ->
+          # check if all instances files is older than 1 hour
+          fs.stat "#{process.cwd()}/.aws-cli-all-instances", (err, stats) ->
+            if(err || moment(stats.mtime).isBefore(moment().subtract('hour',1)))
+              console.log 'no all instances'
+              getAllInstances (data) ->
+                callback null, JSON.parse(data)
+            else
+                fs.readFile "#{process.cwd()}/.aws-cli-all-instances", "utf8",(err, data) ->
+                  callback null, JSON.parse(data)
+
+        ,(aI, callback) ->
+          getMetricsFor = []
+          if opts['--metrics']
+            metrics = opts['--metrics'].split(',')
+          else
+            metrics=EC2_metrics
+
+          if opts['--instances']
+            instances = opts['--instances'].split(',')
+          else 
+            instances = regions
+
+          # get instances based on regions
+          _.each instances, (region) ->
+            if _.indexOf regions, region != -1
+              getMetricsFor = _.union(getMetricsFor, _.where aI, {'region':region})
+
+          _.each instances, (instance) ->
+            if typeof instance is 'string'
+              getMetricsFor = _.union(getMetricsFor, _.where aI, {'instanceId':instance})
+
+          callback null, getMetricsFor
+
+        ,(mF, callback) ->
+          regions = _.unique(_.pluck mF, 'region')
+          getAWSConfig (credentials) ->
+            AWS.config.update
+              accessKeyId: credentials.AWS_ACCESS_KEY_ID
+              secretAccessKey: credentials.AWS_SECRET_KEY
+
+              _.each regions, (region) ->
+                AWS.config.update {region: region}
+                instances = _.where mF, {'region':region}
+                printRegionHeader region
+                console.log instances
+
+      ])
+
+     
+
+
+        
+
+
+
+          
+      # console.log metrics
+      # console.log instances
+    #   process.stdin.resume()
+
+    #   process.stdin.setEncoding('utf8')
+
+    #   process.stdin.on 'data', (chunk) ->
+    #     console.log ('data: ' + chunk);
+
+    # console.log 'these are the instances: ',  opts["<id>"]
+    # { Dimensions: [ { Name: 'InstanceId', Value: 'i-51dd4828' } ],
+    # aws get-metrics `aws instances us-east-1 --id-only`
 
 
 ### Misc.
