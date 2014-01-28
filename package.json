@@ -29,6 +29,7 @@
     "moment": "2.3.1",
     "request": "*",
     "async":"*",
-    "aws-sdk":"*"
+    "aws-sdk":"*",
+    "inspect":"*"
   }
 }

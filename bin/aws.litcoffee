@@ -11,9 +11,19 @@
     Usage:
       aws regions
       aws security-credentials --access-key-id=<accessKeyId> --secret-access-key=<secretAccessKey>
-      aws ls [<region>...]
+      aws instances [<region>...] [--id-only]  
+      aws metrics
+      aws get-metrics <id>...
       aws -h | --help | --version
 
+    Options:
+      -h --help             Show this screen.
+      --version             Show version.
+      --access-key-id       Amazon access key id.
+      --secret-access-key   Amazon secret access key.
+      --id-only             Show only the EC2 instance id. Not tabular.
+      <region>              Region ie. us-east-1
+      <id>                  EC2 instance id.
     """
 
     {docopt} = require 'docopt'
@@ -25,13 +35,14 @@
     request = require 'request'
     async = require 'async'
     moment = require 'moment'
+    inspect = require 'inspect'
     AWS = require('aws-sdk')
 
     info = require '../package.json'
     opts = docopt(doc)
 
-
-region info from [http://docs.aws.amazon.com/general/latest/gr/rande.html](http://docs.aws.amazon.com/general/latest/gr/rande.html)
+###Reference Data
+####Region info from [http://docs.aws.amazon.com/general/latest/gr/rande.html](http://docs.aws.amazon.com/general/latest/gr/rande.html)
 
     EC2_regions= [
       {"region": "us-east-1", name:"US East (Northern Virginia)"},
@@ -44,6 +55,19 @@ region info from [http://docs.aws.amazon.com/general/latest/gr/rande.html](http:
       {"region": "sa-east-1", name:"South America (Sao Paulo)"}
     ]
 
+####EC2 Metrics
+
+    EC2_metrics = [ 'CPUUtilization',
+      'DiskWriteBytes',
+      'DiskReadOps',
+      'NetworkOut',
+      'NetworkIn',
+      'DiskWriteOps',
+      'StatusCheckFailed_System',
+      'DiskReadBytes',
+      'StatusCheckFailed_Instance',
+      'StatusCheckFailed']
+
 ###Helper functions
 
     getAWSConfig = (callback) ->
@@ -55,15 +79,40 @@ region info from [http://docs.aws.amazon.com/general/latest/gr/rande.html](http:
             sc = data.split(' ')
             callback {'AWS_ACCESS_KEY_ID':sc[0], "AWS_SECRET_KEY":sc[1]}
 
+    printRegionHeader = (region) ->
+      regionName = _.find EC2_regions, (r) ->
+        r.region is region
+
+      titleLength = "#{region} - #{regionName.name}".length
+      i=0
+      underdash = ""
+      while i < titleLength
+        underdash += "="
+        i++
+
+      console.log "\n\n#{region} - #{regionName.name}".blue
+      console.log "#{underdash}".blue
+
+    getRegions = (opts) ->
+      if !opts['<region>'] or opts['<region>'].length is 0
+        regions = _.pluck EC2_regions, 'region'
+      else 
+        regions = opts['<region>']
+        if (_.intersection(regions, _.pluck(EC2_regions, 'region'))).length isnt regions.length
+          console.log 'Error: Unrecognized region'.red
+          return false
+
+      regions
+
 
 ###Executing the CLI options
 
-version
+####version
 
     if opts['--version']
       console.log "version: #{info.version}".green
 
-set aws sercurity credentials. You should only have to do this once
+####set aws sercurity credentials. You only do this once
 
     else if opts['security-credentials']
       key = opts['--access-key-id']
@@ -74,7 +123,7 @@ set aws sercurity credentials. You should only have to do this once
         else
           console.log 'security credentials saved'.green
 
-regions
+####list regions
 
     else if opts['regions']
       table = new Table
@@ -85,13 +134,15 @@ regions
 
       console.log table.toString()
 
-get instances
+####list instances
   
-    else if opts['ls']
-      if !opts['<region>'] or opts['<region>'].length is 0
-        regions = _.pluck EC2_regions, 'region'
-      else 
-        regions = opts['<region>']
+    else if opts['instances']
+      done = 0
+      instanceIdsStr = ""
+
+      regions = getRegions(opts)
+      if !regions 
+        return
 
       getAWSConfig (credentials) ->
         AWS.config.update
@@ -102,13 +153,21 @@ get instances
           AWS.config.update {region: region}
 
           new AWS.EC2().describeInstances (error, data) ->
-            if error
-              console.log(error)
-            else
-              regionInstances = [];
-              _.each data.Reservations, (r) ->
-                r = r.Instances[0]
+            console.log "get instances ERROR:#{error}".red if error
+            regionInstances = []
+            instanceIds = []
 
+            _.each data.Reservations, (r) ->
+              r = r.Instances[0]
+
+only print out instanceIds
+
+              if opts['--id-only']
+                instanceIds.push r.InstanceId
+
+or print all instance details
+
+              else
                 instanceName = ""
                 _.forEach r.Tags, (t) ->
                   if t.Key is "Name"
@@ -130,9 +189,13 @@ get instances
                 }
                 regionInstances.push(instance)
 
-              console.log '\n\n===================================================='.blue
-              console.log region.blue
-              
+            if opts['--id-only']
+              instanceIdsStr += instanceIds.join(' ')
+              if ++done is regions.length
+                console.log instanceIdsStr
+
+            else
+              printRegionHeader region
               table = new Table
                 head: ['Name','Instance Id','Instance Type','Status','Launched','Public DNS Name','Public IP Address']
               _.each regionInstances, (i) ->
@@ -140,6 +203,49 @@ get instances
 
               console.log table.toString()
 
+####list metrics 
+
+    if opts['metrics']
+      table = new Table
+        head: ['Metrics name'],
+
+      _.each EC2_metrics, (r) ->
+        table.push [r]
+
+      console.log table.toString()
+
+
+
+
+### Misc.
+
+commented out code to get list of available metrics for EC2 instances 
+
+      # regionMetrics = []
+      # regions = EC2_regions
+      # getAWSConfig (credentials) ->
+      #   AWS.config.update
+      #     accessKeyId: credentials.AWS_ACCESS_KEY_ID
+      #     secretAccessKey: credentials.AWS_SECRET_KEY
+
+      #   _.each regions, (region) ->
+      #     AWS.config.update {region: region}
+
+      #     new AWS.CloudWatch().listMetrics (error, data) ->
+      #       console.log "get metrics error: #{error}" if error
+            
+
+      #       fs.writeFile "#{process.cwd()}/metrics-test", JSON.stringify(data.Metrics)
+
+      #       _.each data.Metrics, (m) ->
+      #         if m.Namespace is 'AWS/EC2' and m.Dimensions[0].Name is 'InstanceId'
+      #           regionMetrics.push m
+
+      #       printRegionHeader region
+      #       console.log _.unique(_.pluck(regionMetrics, 'MetricName'))
+
+
+aws.js sibling file used to shim coffee-script (gets overwritten sometimes)
 
     # #!/usr/bin/env node
     # require('coffee-script')
