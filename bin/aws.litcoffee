@@ -345,7 +345,7 @@ in order to get metrics you need region of instance
                           _.each data, (d) ->
                             plot.push d.Average
 
-                          console.log 'Average CPU, last 4 hours, every minute'.green
+                          console.log 'Last 4 hours, every minute'.green
                           console.log sparkline(plot)
                           console.log 'max'.green, _.max(plot).toFixed(2)
                           console.log 'min'.green, _.min(plot).toFixed(2)
@@ -355,29 +355,7 @@ in order to get metrics you need region of instance
                           console.log 'avg'.green, (sum/plot.length).toFixed(2)
                         else 
                           console.log 'N/A'
-
       ])
-
-     
-
-
-        
-
-
-
-          
-      # console.log metrics
-      # console.log instances
-    #   process.stdin.resume()
-
-    #   process.stdin.setEncoding('utf8')
-
-    #   process.stdin.on 'data', (chunk) ->
-    #     console.log ('data: ' + chunk);
-
-    # console.log 'these are the instances: ',  opts["<id>"]
-    # { Dimensions: [ { Name: 'InstanceId', Value: 'i-51dd4828' } ],
-    # aws get-metrics `aws instances us-east-1 --id-only`
 
 
 ### Misc.
