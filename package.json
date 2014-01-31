@@ -30,6 +30,7 @@
     "request": "*",
     "async":"*",
     "aws-sdk":"*",
-    "inspect":"*"
+    "inspect":"*",
+    "sparkline": "0.1.1"
   }
 }

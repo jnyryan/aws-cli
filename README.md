@@ -46,7 +46,12 @@ Get list of available metrics
 aws metrics
 ```
 
-Get all metrics for instances in us-west-2 and us-east-1 regions and the i-b0607fe7 instance
+Get all metrics for all instances
 ```
-aws get-metrics --metrics=CPUUtilization --instances=us-west-2,us-east-1,i-b0607fe7
+aws get-metrics
+
+
+Get DiskReadBytes and CPUUtilization metrics for instances in us-west-2 and the i-b0607fe7 instance
+```
+aws get-metrics --instances=us-west-2,i-b0607fe7 --metrics=DiskReadBytes,CPUUtilization
 ```

@@ -37,7 +37,8 @@
     async = require 'async'
     moment = require 'moment'
     inspect = require 'inspect'
-    AWS = require('aws-sdk')
+    sparkline = require 'sparkline'
+    AWS = require 'aws-sdk'
 
     info = require '../package.json'
     opts = docopt(doc)
@@ -64,10 +65,7 @@
       'NetworkOut',
       'NetworkIn',
       'DiskWriteOps',
-      'StatusCheckFailed_System',
-      'DiskReadBytes',
-      'StatusCheckFailed_Instance',
-      'StatusCheckFailed']
+      'DiskReadBytes']
 
 ###Helper functions
 
@@ -83,15 +81,18 @@
     printRegionHeader = (region) ->
       regionName = _.find EC2_regions, (r) ->
         r.region is region
+      printHeader "#{region} - #{regionName.name}"
 
-      titleLength = "#{region} - #{regionName.name}".length
+
+    printHeader = (title) ->
+      titleLength = title.length
       i=0
       underdash = ""
       while i < titleLength
         underdash += "="
         i++
 
-      console.log "\n\n#{region} - #{regionName.name}".blue
+      console.log "\n\n#{title}".blue
       console.log "#{underdash}".blue
 
 
@@ -249,11 +250,15 @@ or print all instance details
 ####get speicified metrics for specified instances
     
     else if opts['get-metrics']
+    
+
 
 in order to get metrics you need region of instance
+
       regions = _.pluck EC2_regions, 'region'
 
       async.waterfall([
+        # get All instances
         (callback) ->
           # check if all instances files is older than 1 hour
           fs.stat "#{process.cwd()}/.aws-cli-all-instances", (err, stats) ->
@@ -265,6 +270,7 @@ in order to get metrics you need region of instance
                 fs.readFile "#{process.cwd()}/.aws-cli-all-instances", "utf8",(err, data) ->
                   callback null, JSON.parse(data)
 
+        # get the instances and regions to get metrics for
         ,(aI, callback) ->
           getMetricsFor = []
           if opts['--metrics']
@@ -286,20 +292,69 @@ in order to get metrics you need region of instance
             if typeof instance is 'string'
               getMetricsFor = _.union(getMetricsFor, _.where aI, {'instanceId':instance})
 
-          callback null, getMetricsFor
+          callback null, getMetricsFor, metrics
 
-        ,(mF, callback) ->
-          regions = _.unique(_.pluck mF, 'region')
+        # get the metrics
+        ,(getMetricsFor, metrics, callback) ->
+          regions = _.unique(_.pluck getMetricsFor, 'region')
           getAWSConfig (credentials) ->
-            AWS.config.update
-              accessKeyId: credentials.AWS_ACCESS_KEY_ID
-              secretAccessKey: credentials.AWS_SECRET_KEY
 
               _.each regions, (region) ->
-                AWS.config.update {region: region}
-                instances = _.where mF, {'region':region}
-                printRegionHeader region
-                console.log instances
+                AWS.config.update
+                  accessKeyId: credentials.AWS_ACCESS_KEY_ID
+                  secretAccessKey: credentials.AWS_SECRET_KEY
+                  region: region
+                instances = _.where getMetricsFor, {'region':region}
+                
+
+                _.each instances, (instance) ->
+                  _.each metrics, (metric) ->
+                    if _.indexOf(EC2_metrics, metric) == -1
+                      return false;
+
+                    dimensions = []
+                    dimensions.push
+                      Name: 'InstanceId'
+                      Value: instance.instanceId
+
+                    new AWS.CloudWatch().getMetricStatistics {
+                        Dimensions:dimensions
+                        Namespace:'AWS/EC2'
+                        MetricName:metric
+                        StartTime:moment(new Date()).subtract('hour',4).toDate()
+                        EndTime:new Date()
+                        Period:60
+                        Statistics:['Average']
+                      }, (error, data) ->
+                        if error
+                          console.log "ERROR:", error
+                          return
+
+
+                        printHeader region  + ', ' + instance.instanceId + ' - ' + metric
+
+                        if data.Datapoints.length > 0
+                          data = data.Datapoints
+                          _.forEach data, (d) ->
+                            d.UnixTimeStamp = moment(d.Timestamp).unix()
+
+                          data.sort (a,b) ->
+                            a.UnixTimeStamp - b.UnixTimeStamp
+
+                          plot = []
+                          _.each data, (d) ->
+                            plot.push d.Average
+
+                          console.log 'Average CPU, last 4 hours, every minute'.green
+                          console.log sparkline(plot)
+                          console.log 'max'.green, _.max(plot).toFixed(2)
+                          console.log 'min'.green, _.min(plot).toFixed(2)
+
+                          sum = _.reduce plot, (sum, num) ->
+                            sum + num
+                          console.log 'avg'.green, (sum/plot.length).toFixed(2)
+                        else 
+                          console.log 'N/A'
 
       ])
 
