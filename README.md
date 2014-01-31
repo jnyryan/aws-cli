@@ -28,17 +28,17 @@ aws regions
 
 Get all instances
 ```
-aws instnaces
+aws instances
 ```
 
 Get instances for specific regions
 ```
-aws instnaces us-east-1 us-west-2
+aws instances us-east-1 us-west-2
 ```
 
 Get comma separated instance Ids for specific regions
 ```
-aws instnaces us-east-1 us-west-2 --id-only
+aws instances us-east-1 us-west-2 --id-only
 ```
 
 Get list of available metrics
