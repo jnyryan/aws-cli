@@ -49,7 +49,7 @@ aws metrics
 Get all metrics for all instances
 ```
 aws get-metrics
-
+```
 
 Get DiskReadBytes and CPUUtilization metrics for instances in us-west-2 and the i-b0607fe7 instance
 ```
