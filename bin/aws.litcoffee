@@ -329,7 +329,6 @@ in order to get metrics you need region of instance
                           console.log "ERROR:", error
                           return
 
-
                         printHeader region  + ', ' + instance.instanceId + ' - ' + metric
 
                         if data.Datapoints.length > 0
@@ -344,7 +343,9 @@ in order to get metrics you need region of instance
                           _.each data, (d) ->
                             plot.push d.Average
 
-                          console.log 'Last 4 hours, every minute'.green
+                          unit = data[0].Unit
+
+                          console.log 'Last 4 hours, every minute'.green, '  Unit: ' + unit.green
                           console.log sparkline(plot)
                           console.log 'max'.green, _.max(plot).toFixed(2)
                           console.log 'min'.green, _.min(plot).toFixed(2)
