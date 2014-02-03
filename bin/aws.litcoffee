@@ -263,7 +263,6 @@ in order to get metrics you need region of instance
           # check if all instances files is older than 1 hour
           fs.stat "#{process.cwd()}/.aws-cli-all-instances", (err, stats) ->
             if(err || moment(stats.mtime).isBefore(moment().subtract('hour',1)))
-              console.log 'no all instances'
               getAllInstances (data) ->
                 callback null, JSON.parse(data)
             else
